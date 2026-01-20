@@ -16,40 +16,24 @@ WEEKDAY_KINGS = {
     "Saturday": ("السبت (كسفيائيل)", 102)
 }
 
-# --- 2. المحركات الذكية ---
+# --- 2. محرك العمليات المتقدمة ---
 
-def get_auto_zodiac():
-    now = datetime.datetime.now()
-    m, d = now.month, now.day
-    # تحديد البرج والأس آلياً
-    if (m == 3 and d >= 21) or (m == 4 and d <= 19): return "الحمل", 12
-    elif (m == 4 and d >= 20) or (m == 5 and d <= 20): return "الثور", 7
-    elif (m == 5 and d >= 21) or (m == 6 and d <= 20): return "الجوزاء", 15
-    elif (m == 6 and d >= 21) or (m == 7 and d <= 22): return "السرطان", 4
-    elif (m == 7 and d >= 23) or (m == 8 and d <= 22): return "الأسد", 10
-    elif (m == 8 and d >= 23) or (m == 9 and d <= 22): return "العذراء", 5
-    elif (m == 9 and d >= 23) or (m == 10 and d <= 22): return "الميزان", 8
-    elif (m == 10 and d >= 23) or (m == 11 and d <= 21): return "العقرب", 9
-    elif (m == 11 and d >= 22) or (m == 12 and d <= 21): return "القوس", 11
-    elif (m == 12 and d >= 22) or (m == 1 and d <= 19): return "الجدي", 3
-    elif (m == 1 and d >= 20) or (m == 2 and d <= 18): return "الدلو", 6
-    else: return "الحوت", 14
+def calculate_gematria(text):
+    """حساب جمل النص بناءً على جدول أبجد الكبير"""
+    return sum(ABJAD.get(c, 0) for c in text if c in ABJAD)
 
-def construct_prose_answer(mustahsila_chars, total_sum):
-    """تحويل حروف المستحصلة إلى جملة مقروءة مباشرة"""
-    # تصنيف الأجوبة حسب طبائع الحساب (نار، تراب، هواء، ماء)
-    keys = {
-        0: ["الظفر بالمراد قريب والوقت مناسب", "نور التأييد يسطع في هذا الأمر"],
-        1: ["ثبات السعي يورث النجاح الأكيد", "تمسك بالصبر فالنتيجة محمودة جداً"],
-        2: ["بشرى سارة تأتيك مع هبوب رياح التغيير", "انفراج في الضيق ونبأ يسر الخاطر"],
-        3: ["في هذا المسعى رزق مبارك وصفاء"، "تيسير في الخطى وبركة في النتائج"]
-    }
-    element_index = total_sum % 4
-    base_sentence = random.choice(keys[element_index])
-    
-    # دمج حروف المستحصلة بشكل مقروء في سياق الجواب
-    readable_part = "".join(mustahsila_chars[:4]) # نأخذ أول 4 حروف ككلمة سرية
-    return f"{base_sentence}.. (إشارة النطق: {readable_part})"
+def jabr_logic(number):
+    """استنطاق الحروف من الأعداد (قاعدة النطق الجفري)"""
+    chars = ""
+    temp_num = number
+    for val in sorted(ABJAD.values(), reverse=True):
+        while temp_num >= val:
+            for char, v in ABJAD.items():
+                if v == val:
+                    chars += char
+                    temp_num -= val
+                    break
+    return chars
 
 def generate_4x4_wafq(total_sum):
     if total_sum < 30: total_sum += 360
@@ -63,63 +47,68 @@ def generate_4x4_wafq(total_sum):
 
 # --- 3. واجهة المستخدم ---
 
-st.set_page_config(page_title="منظومة الزايرجة الناطقة", layout="wide")
-st.title("📜 استنطاق الزايرجة الكبرى (نطق الحروف)")
-
-# الرصد الآلي اللحظي
-current_time = datetime.datetime.now()
-king_name, king_val = WEEKDAY_KINGS[current_time.strftime("%A")]
-zodiac_name, zodiac_ass = get_auto_zodiac()
-auto_jump = (current_time.day % 7) + 1
+st.set_page_config(page_title="الزايرجة الجامعة الكبرى", layout="wide")
+st.title("📜 المنظومة الكبرى لاستنطاق الزايرجة والأوفاق")
 
 with st.sidebar:
-    st.header("📡 الرصد الفلكي")
-    st.success(f"اليوم: {king_name}")
-    st.info(f"البرج: {zodiac_name}")
-    st.warning(f"قوة الوتر: {auto_jump}")
+    st.header("⚙️ إعدادات الرصد")
+    zodiac_name = st.selectbox("برج الطالع:", list(ZODIAC_ROOTS.keys()))
+    day_king = st.selectbox("ملك اليوم الحالي:", list(DAY_KINGS.keys()))
+    jump_val = st.slider("قوة الوتر (القفز):", 1, 7, 3)
 
-with st.expander("👤 مدخلات الكشف", expanded=True):
-    c1, c2 = st.columns(2)
-    with c1:
-        p_name = st.text_input("اسم السائل:")
-        m_name = st.text_input("اسم الأم:")
-    with c2:
-        question = st.text_input("اكتب سؤالك:")
+# حقول بيانات السائل والسؤال
+with st.expander("👤 بيانات السائل والسؤال (سرية تامة)", expanded=True):
+    col_a, col_b = st.columns(2)
+    with col_a:
+        person_name = st.text_input("اسم السائل:")
+        mother_name = st.text_input("اسم الأم:")
+    with col_b:
+        question = st.text_input("نص السؤال:")
 
-if st.button("🚀 استنطاق الجواب المقروء"):
-    if p_name and m_name and question:
-        # حساب الجمل
-        q_sum = sum(ABJAD.get(c, 0) for c in question if c in ABJAD)
-        p_sum = sum(ABJAD.get(c, 0) for c in p_name if c in ABJAD)
-        m_sum = sum(ABJAD.get(c, 0) for c in m_name if c in ABJAD)
+if st.button("🚀 بدء الاستنطاق الجامع"):
+    if not (question and person_name and mother_name):
+        st.error("يرجى إكمال كافة البيانات (الاسم، اسم الأم، السؤال).")
+    else:
+        # أ. الحسابات العددية
+        q_sum = calculate_gematria(question)
+        p_sum = calculate_gematria(person_name)
+        m_sum = calculate_gematria(mother_name)
         total_sum = q_sum + p_sum + m_sum
         
-        # استخراج حروف المستحصلة
-        mustahsila_chars = []
-        combined = (question + p_name).replace(" ", "")
-        for i, char in enumerate(combined):
-            idx = (total_sum + i - zodiac_ass) % 28
-            opp = ALPHABET[(idx + 14) % 28]
-            final_char = ALPHABET[(ALPHABET.index(opp) + auto_jump) % 28]
-            mustahsila_chars.append(final_char)
+        # ب. استخراج المستحصلة الحرفية
+        mustahsila = ""
+        ass = ZODIAC_ROOTS[zodiac_name]
+        king_val = DAY_KINGS[day_king]
         
-        # عرض الجواب النثري المباشر
+        # دمج السؤال مع الاسم في مصفوفة واحدة للاستنطاق
+        combined_text = (question + person_name).replace(" ", "")
+        for i, char in enumerate(combined_text):
+            # معادلة المستحصلة: (المجموع الكلي + رتبة الحرف - الأس)
+            idx = (total_sum + i - ass) % 28
+            # تطبيق النظيرة والقفز
+            opp_char = ALPHABET[(idx + 14) % 28]
+            final_char = ALPHABET[(ALPHABET.index(opp_char) + jump_val) % 28]
+            mustahsila += final_char
+        
+        # ج. عرض النتائج
         st.markdown("---")
-        st.subheader("📝 الجواب المنطوق")
-        final_answer = construct_prose_answer(mustahsila_chars, total_sum)
-        st.success(f"**{final_answer}**")
+        st.subheader("🔮 كشف المستحصلة الحرفية")
+        st.success(f"الحروف المستنطقة: {' . '.join(mustahsila[:15])}") # عرض أول 15 حرف لجمالية النظم
         
-        # التفاصيل التقنية
-        res1, res2 = st.columns(2)
-        with res1:
-            st.write(f"🔢 المجموع الكلي: **{total_sum}**")
-            st.write(f"🔮 الحروف المستحصلة (نطقاً): `{''.join(mustahsila_chars[:8])}`")
-        with res2:
-            st.subheader("🔢 الوفق الرباعي (سر التثبيت)")
-            wafq = generate_4x4_wafq(total_sum)
-            for row in wafq:
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"👼 الملك الموكل بالإجابة والسائل: **{jabr_logic(total_sum % 1000)}ائيل**")
+            st.metric("المجموع العددي الكلي", total_sum)
+        
+        with col2:
+            st.subheader("🟦 الوفق الرباعي المخصص (4x4)")
+            
+            wafq_4 = generate_4x4_wafq(total_sum)
+            for row in wafq_4:
                 cols = st.columns(4)
                 for idx, val in enumerate(row):
                     cols[idx].code(val)
-    else:
-        st.error("يرجى إكمال البيانات.")
+            st.caption("هذا الوفق ممتزج بطبائع السائل وسر السؤال.")
+
+st.markdown("---")
+st.caption("تمت البرمجة بناءً على دمج أصول ابن خلدون، الرزواوي، ومخطوطات الجفر.")
